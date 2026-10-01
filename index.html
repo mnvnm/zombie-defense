@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>좀비 디펜스</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { width: 100%; height: 100%; background: #0b0a0f; overflow: hidden; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; color: #fff; }
+  #wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); --s: 1; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #summonBtn, #upBtn {
+    position: absolute; left: 6.25%; width: 58%; top: 91.1%; height: 7.4%;
+    border: none; border-radius: calc(var(--s) * 14px);
+    background: linear-gradient(180deg, #f2b33d, #c9761a); color: #2a1600;
+    font-size: calc(var(--s) * 20px); font-weight: 900; font-family: inherit;
+    box-shadow: 0 calc(var(--s) * 4px) 0 #7a430b; cursor: pointer; display: none;
+    touch-action: manipulation;
+  }
+  #summonBtn small { font-size: calc(var(--s) * 12px); font-weight: 700; opacity: .75; }
+  #summonBtn.poor { background: linear-gradient(180deg, #777, #555); color: #ddd; box-shadow: 0 calc(var(--s) * 4px) 0 #333; }
+  #summonBtn:active, #upBtn:active { transform: translateY(calc(var(--s) * 3px)); box-shadow: 0 calc(var(--s) * 1px) 0 #7a430b; }
+  #summonBtn { font-size: calc(var(--s) * 17px); }
+  #upBtn { left: 66.25%; width: 27.5%; font-size: calc(var(--s) * 17px); background: linear-gradient(180deg, #6fb3ff, #2f6fc9); color: #fff; box-shadow: 0 calc(var(--s) * 4px) 0 #1a3f78; }
+  #upBtn small, #summonBtn small { display: block; }
+  #upPanel { justify-content: flex-start; padding: calc(var(--s) * 20px) calc(var(--s) * 12px); gap: calc(var(--s) * 10px); background: rgba(8, 6, 10, .92); }
+  #upPanel h3 { font-size: calc(var(--s) * 26px); font-weight: 900; color: #6fb3ff; }
+  #upGold { font-size: calc(var(--s) * 18px); color: #ffd34a; font-weight: 800; }
+  #upList { width: 100%; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: calc(var(--s) * 8px); touch-action: pan-y; }
+  .uRow { display: flex; align-items: center; gap: calc(var(--s) * 8px); background: rgba(255,255,255,.07); border-radius: calc(var(--s) * 12px); padding: calc(var(--s) * 8px); }
+  .uIcon { width: calc(var(--s) * 50px); height: calc(var(--s) * 50px); border-radius: calc(var(--s) * 10px); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: calc(var(--s) * 24px); flex: none; }
+  .uIcon span { font-size: calc(var(--s) * 10px); font-weight: 800; }
+  .uStat { flex: 1; text-align: left; font-size: calc(var(--s) * 12px); line-height: 1.5; color: #ddd; }
+  .uBtn { flex: none; width: calc(var(--s) * 106px); white-space: nowrap; border: none; border-radius: calc(var(--s) * 10px); padding: calc(var(--s) * 6px) 0; font-family: inherit; font-weight: 800; font-size: calc(var(--s) * 12px); line-height: 1.35; cursor: pointer; color: #2a1600; background: linear-gradient(180deg, #f2b33d, #c9761a); }
+  .uBtn.spd { background: linear-gradient(180deg, #7fe07a, #3a9a38); color: #062a05; }
+  .uBtn:disabled { background: #555; color: #bbb; cursor: default; }
+  .uBtn.wide { width: calc(var(--s) * 90px); }
+  #upTabs { display: flex; gap: calc(var(--s) * 6px); width: 100%; }
+  .tabBtn { flex: 1; border: none; border-radius: calc(var(--s) * 10px); padding: calc(var(--s) * 9px) 0; font-family: inherit; font-weight: 800; font-size: calc(var(--s) * 15px); background: rgba(255,255,255,.1); color: #ccc; cursor: pointer; }
+  .tabBtn.on { background: #6fb3ff; color: #08203f; }
+  #skillBox { position: absolute; right: 2.5%; top: 36%; display: none; flex-direction: column; gap: calc(var(--s) * 10px); }
+  .skBtn { position: relative; width: calc(var(--s) * 50px); height: calc(var(--s) * 50px); border-radius: 50%; border: calc(var(--s) * 3px) solid #bfe8ff; background: rgba(30,60,90,.85); font-size: calc(var(--s) * 24px); cursor: pointer; touch-action: manipulation; }
+  .skBtn.empty { filter: grayscale(1); opacity: .5; }
+  .skBtn b { position: absolute; right: calc(var(--s) * -6px); bottom: calc(var(--s) * -6px); min-width: calc(var(--s) * 22px); height: calc(var(--s) * 22px); line-height: calc(var(--s) * 22px); border-radius: calc(var(--s) * 11px); background: #e03a3a; color: #fff; font-size: calc(var(--s) * 13px); font-style: normal; }
+  .skBtn i { position: absolute; left: calc(var(--s) * -4px); top: calc(var(--s) * -6px); font-size: calc(var(--s) * 10px); font-style: normal; font-weight: 800; color: #fff; background: rgba(0,0,0,.7); border-radius: calc(var(--s) * 4px); padding: 0 calc(var(--s) * 4px); }
+  #upClose { padding: calc(var(--s) * 10px) calc(var(--s) * 40px); font-size: calc(var(--s) * 18px); }
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(8, 6, 10, .82); text-align: center; padding: calc(var(--s) * 24px); gap: calc(var(--s) * 14px);
+  }
+  .overlay.hidden { display: none; }
+  .big { font-size: calc(var(--s) * 64px); line-height: 1.1; }
+  h1 { font-size: calc(var(--s) * 44px); font-weight: 900; color: #f2b33d; text-shadow: 0 calc(var(--s) * 4px) 0 #5a1a12; letter-spacing: calc(var(--s) * 2px); }
+  h2 { font-size: calc(var(--s) * 36px); font-weight: 900; color: #ff5a4a; }
+  .sub { font-size: calc(var(--s) * 16px); color: #ccc; }
+  .howto { font-size: calc(var(--s) * 15px); line-height: 1.75; color: #e8e2d6; background: rgba(255,255,255,.07); border-radius: calc(var(--s) * 12px); padding: calc(var(--s) * 14px) calc(var(--s) * 18px); text-align: left; }
+  .result { font-size: calc(var(--s) * 20px); line-height: 1.8; }
+  .result b { color: #f2b33d; }
+  .btn {
+    border: none; border-radius: calc(var(--s) * 14px); padding: calc(var(--s) * 14px) calc(var(--s) * 44px);
+    background: linear-gradient(180deg, #f2b33d, #c9761a); color: #2a1600; font-family: inherit;
+    font-size: calc(var(--s) * 22px); font-weight: 900; box-shadow: 0 calc(var(--s) * 4px) 0 #7a430b; cursor: pointer;
+  }
+  .btn:active { transform: translateY(calc(var(--s) * 3px)); box-shadow: 0 calc(var(--s) * 1px) 0 #7a430b; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <button id="summonBtn" tabindex="-1">🪖 유닛 소환 (💰 10) <small>스페이스</small></button>
+  <button id="upBtn" tabindex="-1">⚙️ 강화 <small>U</small></button>
+  <div id="skillBox">
+    <button class="skBtn empty" id="skFreeze" data-k="freeze" tabindex="-1">❄️<b>0</b><i>1</i></button>
+    <button class="skBtn empty" id="skDouble" data-k="double" tabindex="-1">💰<b>0</b><i>2</i></button>
+  </div>
+
+  <div id="upPanel" class="overlay hidden">
+    <h3>⚙️ 강화</h3>
+    <div id="upGold">💰 0</div>
+    <div id="upTabs">
+      <button class="tabBtn on" data-tab="unit" tabindex="-1">🪖 유닛</button>
+      <button class="tabBtn" data-tab="base" tabindex="-1">🏗️ 기지</button>
+      <button class="tabBtn" data-tab="skill" tabindex="-1">✨ 스킬</button>
+    </div>
+    <div id="upList"></div>
+    <button class="btn" id="upClose" tabindex="-1">닫기</button>
+  </div>
+
+  <div id="titleScreen" class="overlay">
+    <div class="big">🔫🧟</div>
+    <h1>좀비 디펜스</h1>
+    <div class="sub">좀비로 뒤덮인 도시, 최강의 부대를 만들어라!</div>
+    <div class="howto">
+      🪖 <b>유닛 소환</b> 버튼(스페이스)으로 군인을 부르세요<br>
+      ✋ 같은 레벨 군인을 <b>드래그해서 겹치면</b> 합쳐집니다<br>
+      ⚙️ <b>강화</b> 버튼(U)으로 유닛·기지를 강화하고 스킬을 사세요<br>
+      ✨ 산 스킬은 오른쪽 버튼(1, 2)으로 사용합니다<br>
+      🔫 군인들은 다가오는 좀비를 자동으로 쏩니다<br>
+      💀 군인이 모두 죽으면 게임 오버!
+    </div>
+    <button class="btn" id="startBtn" tabindex="-1">시작하기</button>
+  </div>
+
+  <div id="overScreen" class="overlay hidden">
+    <div class="big">🧟🧟🧟</div>
+    <h2>부대 전멸</h2>
+    <div class="result" id="resultText"></div>
+    <button class="btn" id="retryBtn" tabindex="-1">다시 하기</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const W = 400, H = 760;
+  const COLS = 5, ROWS = 3, CELL = 70;
+  const GX = (W - COLS * CELL) / 2, GY = 468;
+  const LINE_Y = 452;
+  const MAX_LV = 10;
+  const UNIT_EMOJI = ['👮', '💂', '🧑‍🚒', '🧑‍✈️', '🕵️', '🧑‍🚀', '🥷', '🦸', '🤖', '👑'];
+  const UNIT_COLOR = ['#6b7a5a', '#4f7fae', '#3fa06b', '#c7a23a', '#c76a2f', '#b8434a', '#9b49c4', '#3c5fd6', '#2fb8c4', '#f2d24a'];
+
+  const wrap = document.getElementById('wrap');
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const summonBtn = document.getElementById('summonBtn');
+  const titleScreen = document.getElementById('titleScreen');
+  const overScreen = document.getElementById('overScreen');
+  const resultText = document.getElementById('resultText');
+const upBtn = document.getElementById('upBtn');  const upPanel = document.getElementById('upPanel');  const upList = document.getElementById('upList');  const upGold = document.getElementById('upGold');
+  const skillBox = document.getElementById('skillBox');
+  const skillBtns = { freeze: document.getElementById('skFreeze'), double: document.getElementById('skDouble') };
+
+  let scale = 1, dpr = 1;
+  function resize() {
+    scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    dpr = window.devicePixelRatio || 1;
+    wrap.style.width = W * scale + 'px';
+    wrap.style.height = H * scale + 'px';
+    wrap.style.setProperty('--s', scale);
+    cv.width = Math.round(W * scale * dpr);
+    cv.height = Math.round(H * scale * dpr);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---------- 배경 (도시) 미리 그리기 ----------
+  const bg = document.createElement('canvas');
+  bg.width = W * 2; bg.height = H * 2;
+  (function drawBg() {
+    const b = bg.getContext('2d');
+    b.scale(2, 2);
+    const sky = b.createLinearGradient(0, 0, 0, 150);
+    sky.addColorStop(0, '#1a0f22'); sky.addColorStop(1, '#5a2028');
+    b.fillStyle = sky; b.fillRect(0, 0, W, 160);
+    b.fillStyle = 'rgba(255,220,180,.85)';
+    b.beginPath(); b.arc(320, 70, 18, 0, Math.PI * 2); b.fill();
+    // 빌딩
+    let x = -10;
+    let seed = 7;
+    const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    while (x < W) {
+      const w = 34 + rnd() * 40, h = 50 + rnd() * 80;
+      b.fillStyle = rnd() < .5 ? '#140d17' : '#1b1220';
+      b.fillRect(x, 150 - h, w, h);
+      for (let wy = 150 - h + 8; wy < 142; wy += 12)
+        for (let wx = x + 5; wx < x + w - 6; wx += 9)
+          if (rnd() < .18) { b.fillStyle = rnd() < .6 ? '#d9a441' : '#7a2a2a'; b.fillRect(wx, wy, 4, 5); }
+      x += w + 2;
+    }
+    // 도로
+    b.fillStyle = '#2a2a2e'; b.fillRect(0, 150, W, LINE_Y - 150);
+    b.fillStyle = '#3a3a40'; b.fillRect(0, 150, 26, LINE_Y - 150); b.fillRect(W - 26, 150, 26, LINE_Y - 150);
+    b.fillStyle = 'rgba(230,200,90,.55)';
+    for (let y = 160; y < LINE_Y; y += 34) { b.fillRect(W / 2 - 3, y, 6, 18); }
+    b.strokeStyle = 'rgba(0,0,0,.35)'; b.lineWidth = 1.5;
+    for (let i = 0; i < 14; i++) {
+      let cx = 30 + rnd() * (W - 60), cy = 170 + rnd() * 260;
+      b.beginPath(); b.moveTo(cx, cy);
+      for (let k = 0; k < 4; k++) { cx += rnd() * 20 - 10; cy += rnd() * 14 - 4; b.lineTo(cx, cy); }
+      b.stroke();
+    }
+    b.fillStyle = 'rgba(120,20,20,.35)';
+    for (let i = 0; i < 8; i++) { b.beginPath(); b.ellipse(30 + rnd() * (W - 60), 180 + rnd() * 250, 6 + rnd() * 10, 3 + rnd() * 5, 0, 0, Math.PI * 2); b.fill(); }
+    b.font = '26px serif'; b.textAlign = 'center'; b.textBaseline = 'middle';
+    b.globalAlpha = .8;
+    b.fillText('🚗', 18, 230); b.fillText('🛢️', W - 16, 320); b.fillText('🚧', 16, 390); b.fillText('🚙', W - 18, 200);
+    b.globalAlpha = 1;
+    // 기지 바닥
+    b.fillStyle = '#1e2419'; b.fillRect(0, LINE_Y, W, H - LINE_Y);
+    // 모래주머니 바리케이드
+    for (let i = 0; i < 14; i++) {
+      b.fillStyle = i % 2 ? '#8a7650' : '#7a6844';
+      b.beginPath(); b.roundRect(i * 30 - 6, LINE_Y - 10, 34, 16, 7); b.fill();
+      b.strokeStyle = 'rgba(0,0,0,.3)'; b.stroke();
+    }
+    // 슬롯
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      b.fillStyle = 'rgba(255,255,255,.05)';
+      b.strokeStyle = 'rgba(255,255,255,.12)'; b.lineWidth = 1.5;
+      b.beginPath(); b.roundRect(GX + c * CELL + 4, GY + r * CELL + 4, CELL - 8, CELL - 8, 10); b.fill(); b.stroke();
+    }
+  })();
+
+  // ---------- 상태 ----------
+  let state = 'title';
+  let units = [], zombies = [], bullets = [], parts = [], floats = [];
+  let gold = 0, score = 0, stage = 0, kills = 0, summonCount = 0, spawnLeft = 0, spawnTimer = 0, clearTimer = 0, banner = null, toast = null, drag = null;
+
+  const lvDmg = l => 8 * Math.pow(2.3, l - 1);
+  const lvHp = l => 60 * Math.pow(1.9, l - 1);
+  const lvRate = l => Math.max(0.28, 0.7 - 0.045 * (l - 1));
+  const summonCost = () => 10 + summonCount;
+
+  // ---------- 강화 (유닛 레벨별) ----------
+  const UP_MAX = 10;                                   // 각 강화의 레벨 한계
+  const upDmg = new Array(MAX_LV + 1).fill(0);         // 레벨별 공격력 강화 단계
+  const upSpd = new Array(MAX_LV + 1).fill(0);         // 레벨별 공격속도 강화 단계
+  let maxReached = 1;
+  const dmgMul = l => 1 + 0.2 * upDmg[l];              // 단계당 공격력 +20%
+  const spdMul = l => 1 + 0.1 * upSpd[l];              // 단계당 공격속도 +10%
+  const unitDmg = l => lvDmg(l) * dmgMul(l);
+  const unitRate = l => lvRate(l) / spdMul(l);
+  const upCost = (l, step, base) => Math.round(base * Math.pow(1.8, l - 1) * (1 + step * 0.6));
+  const dmgCost = l => upCost(l, upDmg[l], 20);
+  const spdCost = l => upCost(l, upSpd[l], 25);
+
+  // ---------- 기지 강화 (전체 적용) ----------
+  const BASE_UP = {
+    gold:  { name: '골드 획득량', icon: '💰', max: 10, base: 40, grow: 1.6, desc: l => `골드 +${l * 10}%` },
+    wire:  { name: '철조망',      icon: '🪤', max: 5,  base: 50, grow: 1.8, desc: l => `좀비 이동속도 -${l * 8}%` },
+    regen: { name: '자연회복',    icon: '💚', max: 10, base: 40, grow: 1.6, desc: l => `초당 체력 ${l}% 회복` },
+  };
+  const baseUp = { gold: 0, wire: 0, regen: 0 };
+  const baseCost = k => Math.round(BASE_UP[k].base * Math.pow(BASE_UP[k].grow, baseUp[k]));
+  const goldMul = () => 1 + 0.1 * baseUp.gold;
+  const wireMul = () => 1 - 0.08 * baseUp.wire;
+  const regenRate = () => 0.01 * baseUp.regen;          // 최대 체력 대비 초당 회복 비율 (강화 전 0)
+
+  // ---------- 스킬 (1회용, 구매할 때마다 누적) ----------
+  const SKILLS = {
+    freeze: { name: '모든 적 동결', icon: '❄️', base: 80, dur: 5,  desc: '5초간 모든 좀비가 멈춥니다', key: '1' },
+    double: { name: '골드 2배',     icon: '💰', base: 60, dur: 20, desc: '20초간 골드 획득량 2배', key: '2' },
+  };
+  const skills = { freeze: 0, double: 0 };
+  let freezeT = 0, doubleT = 0;
+  const skillCost = k => Math.round(SKILLS[k].base * (1 + 0.15 * (stage - 1)));
+
+  function useSkill(k) {
+    if (state !== 'play') return;
+    if (skills[k] <= 0) { showToast(`${SKILLS[k].name} 스킬이 없어요 (강화 → 스킬)`); return; }
+    skills[k]--;
+    if (k === 'freeze') { freezeT = Math.max(freezeT, 0) + SKILLS.freeze.dur; banner = { text: '❄️ 모든 적 동결!', t: 1.2, color: '#8fd8ff' }; }
+    if (k === 'double') { doubleT = Math.max(doubleT, 0) + SKILLS.double.dur; banner = { text: '💰 골드 2배!', t: 1.2, color: '#ffd34a' }; }
+    updateBtn();
+  }
+
+  let upTab = 'unit';
+  function buyUpgrade(l, kind) {
+    if (kind === 'dmg' || kind === 'spd') {
+      const arr = kind === 'dmg' ? upDmg : upSpd;
+      const cost = kind === 'dmg' ? dmgCost(l) : spdCost(l);
+      if (arr[l] >= UP_MAX || gold < cost) return;
+      gold -= cost; arr[l]++;
+    } else if (BASE_UP[kind]) {
+      const cost = baseCost(kind);
+      if (baseUp[kind] >= BASE_UP[kind].max || gold < cost) return;
+      gold -= cost; baseUp[kind]++;
+    } else if (SKILLS[kind]) {
+      const cost = skillCost(kind);
+      if (gold < cost) return;
+      gold -= cost; skills[kind]++;
+    }
+    updateBtn();
+  }
+
+  function renderUpgrades() {
+    upGold.textContent = `💰 ${Math.floor(gold)}`;
+    document.querySelectorAll('.tabBtn').forEach(b => b.classList.toggle('on', b.dataset.tab === upTab));
+    let html = '';
+    if (upTab === 'unit') {
+      for (let l = 1; l <= maxReached; l++) {
+        const dMax = upDmg[l] >= UP_MAX, sMax = upSpd[l] >= UP_MAX;
+        const dc = dmgCost(l), sc = spdCost(l);
+        html += `<div class="uRow">
+          <div class="uIcon" style="background:${UNIT_COLOR[l - 1]}">${UNIT_EMOJI[l - 1]}<span>Lv${l}</span></div>
+          <div class="uStat">공격력 <b>${Math.round(unitDmg(l))}</b><br>초당 공격 <b>${(1 / unitRate(l)).toFixed(1)}</b>회</div>
+          <button class="uBtn" data-l="${l}" data-k="dmg" tabindex="-1" ${dMax || gold < dc ? 'disabled' : ''}>💥 공격력 ${upDmg[l]}/${UP_MAX}<br>${dMax ? '최대' : '💰 ' + dc}</button>
+          <button class="uBtn spd" data-l="${l}" data-k="spd" tabindex="-1" ${sMax || gold < sc ? 'disabled' : ''}>⚡ 공격속도 ${upSpd[l]}/${UP_MAX}<br>${sMax ? '최대' : '💰 ' + sc}</button>
+        </div>`;
+      }
+    } else if (upTab === 'base') {
+      for (const k in BASE_UP) {
+        const d = BASE_UP[k], lv = baseUp[k], isMax = lv >= d.max, c = baseCost(k);
+        html += `<div class="uRow">
+          <div class="uIcon" style="background:#3a4a5a">${d.icon}<span>${lv}/${d.max}</span></div>
+          <div class="uStat"><b>${d.name}</b><br>현재: ${lv ? d.desc(lv) : '없음'}${isMax ? '' : `<br>다음: ${d.desc(lv + 1)}`}</div>
+          <button class="uBtn wide" data-k="${k}" tabindex="-1" ${isMax || gold < c ? 'disabled' : ''}>강화<br>${isMax ? '최대' : '💰 ' + c}</button>
+        </div>`;
+      }
+    } else {
+      for (const k in SKILLS) {
+        const d = SKILLS[k], c = skillCost(k);
+        html += `<div class="uRow">
+          <div class="uIcon" style="background:#4a3a5a">${d.icon}<span>${skills[k]}개</span></div>
+          <div class="uStat"><b>${d.name}</b> (1회용)<br>${d.desc}<br>보유 ${skills[k]}개 · 키 ${d.key}</div>
+          <button class="uBtn wide spd" data-k="${k}" tabindex="-1" ${gold < c ? 'disabled' : ''}>구매<br>💰 ${c}</button>
+        </div>`;
+      }
+    }
+    upList.innerHTML = html;
+  }
+
+  function toggleUpgrades() {
+    if (state === 'play') {
+      state = 'upgrade'; drag = null;
+      renderUpgrades();
+      upPanel.classList.remove('hidden');
+    } else if (state === 'upgrade') {
+      state = 'play';
+      upPanel.classList.add('hidden');
+    }
+  }
+
+  function cellPos(i) { return { x: GX + (i % COLS) * CELL + CELL / 2, y: GY + Math.floor(i / COLS) * CELL + CELL / 2 }; }
+  function cellAt(x, y) {
+    const c = Math.floor((x - GX) / CELL), r = Math.floor((y - GY) / CELL);
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return -1;
+    return r * COLS + c;
+  }
+  function makeUnit(lv) { return { lv, hp: lvHp(lv), maxHp: lvHp(lv), cd: Math.random() * 0.5, recoil: 0, pop: 0.35, aim: -Math.PI / 2 }; }
+
+  function newGame() {
+    units = new Array(COLS * ROWS).fill(null);
+    zombies = []; bullets = []; parts = []; floats = [];
+    gold = 30; score = 0; stage = 0; kills = 0; summonCount = 0; maxReached = 1; upDmg.fill(0); upSpd.fill(0);
+    baseUp.gold = baseUp.wire = baseUp.regen = 0; skills.freeze = skills.double = 0; freezeT = doubleT = 0; upTab = 'unit';
+    clearTimer = 0; toast = null; drag = null;
+    units[7] = makeUnit(1);
+    nextStage();
+    state = 'play';
+    titleScreen.classList.add('hidden');
+    overScreen.classList.add('hidden');
+    summonBtn.style.display = 'block'; upBtn.style.display = 'block'; skillBox.style.display = 'flex';
+    updateBtn();
+  }
+
+  function nextStage() {
+    stage++;
+    spawnLeft = Math.min(40, 6 + stage * 2);
+    spawnTimer = 1.6;
+    banner = { text: `스테이지 ${stage}`, t: 1.8, color: '#f2b33d' };
+  }
+
+  function spawnZombie() {
+    const s = stage;
+    const hp = 22 * Math.pow(1.2, s - 1);
+    zombies.push({
+      x: 40 + Math.random() * (W - 80), y: 140 + Math.random() * 10,
+      hp, maxHp: hp,
+      spd: Math.min(70, 24 + s * 1.5) + Math.random() * 8,
+      dmg: 6 * Math.pow(1.15, s - 1),
+      atkCd: 0.6, flash: 0, bob: Math.random() * 6, vamp: s >= 6 && Math.random() < Math.min(.5, (s - 5) * .06),
+    });
+    if (zombies[zombies.length - 1].vamp) { const z = zombies[zombies.length - 1]; z.hp *= 1.6; z.maxHp = z.hp; }
+  }
+
+  function showToast(text) { toast = { text, t: 1.3 }; }
+
+  function updateBtn() {
+    const cost = summonCost();
+    summonBtn.innerHTML = `🪖 유닛 소환 (💰 ${cost}) <small>스페이스</small>`;
+    summonBtn.classList.toggle('poor', gold < cost);
+    for (const k in SKILLS) {
+      const b = skillBtns[k];
+      b.querySelector('b').textContent = skills[k];
+      b.classList.toggle('empty', skills[k] <= 0);
+    }
+    if (state === 'upgrade') renderUpgrades();
+  }
+
+  function summon() {
+    if (state !== 'play') return;
+    const cost = summonCost();
+    if (gold < cost) { showToast('골드가 부족해요'); return; }
+    const empty = [];
+    units.forEach((u, i) => { if (!u) empty.push(i); });
+    if (!empty.length) { showToast('빈 칸이 없어요! 유닛을 합치세요'); return; }
+    gold -= cost; summonCount++;
+    const idx = empty[Math.floor(Math.random() * empty.length)];
+    units[idx] = makeUnit(1);
+    const p = cellPos(idx);
+    burst(p.x, p.y, '#f2d24a', 12);
+    updateBtn();
+  }
+
+  function burst(x, y, color, n, spd = 120) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = spd * (0.3 + Math.random());
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5 + Math.random() * 0.3, max: 0.8, color, r: 2 + Math.random() * 3 });
+    }
+  }
+
+  function gameOver() {
+    state = 'over';
+    drag = null;
+    summonBtn.style.display = 'none'; upBtn.style.display = 'none'; skillBox.style.display = 'none';
+    resultText.innerHTML = `도달 스테이지: <b>${stage}</b><br>점수: <b>${score.toLocaleString()}</b><br>처치한 좀비: <b>${kills}</b>`;
+    setTimeout(() => overScreen.classList.remove('hidden'), 700);
+  }
+
+  // ---------- 업데이트 ----------
+  function update(dt) {
+    if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
+    if (toast) { toast.t -= dt; if (toast.t <= 0) toast = null; }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92;
+      if (p.t <= 0) parts.splice(i, 1);
+    }
+    for (let i = floats.length - 1; i >= 0; i--) { const f = floats[i]; f.t -= dt; f.y -= 30 * dt; if (f.t <= 0) floats.splice(i, 1); }
+    if (state !== 'play') return;
+
+    // 좀비 생성 / 스테이지 진행
+    if (freezeT > 0) freezeT = Math.max(0, freezeT - dt);
+    if (doubleT > 0) doubleT = Math.max(0, doubleT - dt);
+
+    if (spawnLeft > 0) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) { spawnZombie(); spawnLeft--; spawnTimer = Math.max(0.35, 1.2 - stage * 0.04); }
+    } else if (zombies.length === 0) {
+      if (clearTimer <= 0) { clearTimer = 2; banner = { text: `스테이지 ${stage} 클리어!`, t: 1.8, color: '#7fe07a' }; }
+      clearTimer -= dt;
+      if (clearTimer <= 0) { clearTimer = 0; nextStage(); }
+    }
+
+    // 유닛 사격
+    units.forEach((u, i) => {
+      if (!u) return;
+      u.pop = Math.max(0, u.pop - dt); u.recoil = Math.max(0, u.recoil - dt * 5);
+      u.cd -= dt;
+      if (u.cd > 0 || !zombies.length) return;
+      const p = cellPos(i);
+      let best = null, bd = Infinity;
+      for (const z of zombies) { const d = (z.x - p.x) ** 2 + (z.y - p.y) ** 2; if (d < bd) { bd = d; best = z; } }
+      if (!best) return;
+      u.cd = unitRate(u.lv);
+      u.recoil = 1;
+      u.aim = Math.atan2(best.y - p.y, best.x - p.x);
+      bullets.push({ x: p.x, y: p.y - 10, target: best, dmg: unitDmg(u.lv), lv: u.lv });
+    });
+
+    // 총알
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i], z = b.target;
+      if (z.hp <= 0) { bullets.splice(i, 1); continue; }
+      const dx = z.x - b.x, dy = z.y - b.y, d = Math.hypot(dx, dy);
+      const step = 650 * dt;
+      if (d <= step + 8) {
+        z.hp -= b.dmg; z.flash = 0.1;
+        burst(z.x, z.y, '#ffd34a', 3, 60);
+        bullets.splice(i, 1);
+        if (z.hp <= 0) killZombie(z);
+      } else { b.vx = dx / d; b.vy = dy / d; b.x += b.vx * step; b.y += b.vy * step; }
+    }
+
+    // 좀비 이동/공격
+    for (const z of zombies) {
+      z.flash = Math.max(0, z.flash - dt);
+      if (freezeT > 0) continue;                          // 동결: 이동·공격 정지
+      z.bob += dt * 8;
+      let ti = -1, td = Infinity;
+      units.forEach((u, i) => { if (!u) return; const p = cellPos(i); const d = (p.x - z.x) ** 2 + (p.y - z.y) ** 2; if (d < td) { td = d; ti = i; } });
+      if (ti < 0) continue;
+      const p = cellPos(ti), d = Math.sqrt(td);
+      if (d > 34) {
+        z.x += (p.x - z.x) / d * z.spd * wireMul() * dt; z.y += (p.y - z.y) / d * z.spd * wireMul() * dt;
+      } else {
+        z.atkCd -= dt;
+        if (z.atkCd <= 0) {
+          z.atkCd = 1;
+          const u = units[ti];
+          u.hp -= z.dmg; u.hit = 0.15;
+          burst(p.x, p.y, '#c22', 5, 80);
+          if (u.hp <= 0) {
+            units[ti] = null;
+            burst(p.x, p.y, '#888', 18, 150);
+            if (drag && drag.from === ti) drag = null;
+          }
+        }
+      }
+    }
+    // 좀비끼리 겹치지 않게
+    for (let i = 0; i < zombies.length; i++) for (let j = i + 1; j < zombies.length; j++) {
+      const a = zombies[i], b = zombies[j];
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      if (d > 0 && d < 24) { const push = (24 - d) / 2; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push; }
+    }
+    units.forEach(u => { if (u && u.hit) u.hit = Math.max(0, u.hit - dt); });
+    // 자연회복
+    const rr = regenRate();
+    if (rr > 0) units.forEach(u => { if (u) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * rr * dt); });
+
+    if (units.every(u => !u)) gameOver();
+  }
+
+  function killZombie(z) {
+    const i = zombies.indexOf(z);
+    if (i >= 0) zombies.splice(i, 1);
+    const g = (2 + Math.floor(stage / 2) + (z.vamp ? 2 : 0)) * goldMul() * (doubleT > 0 ? 2 : 1);
+    gold += g; score += 10 * stage * (z.vamp ? 2 : 1); kills++;
+    burst(z.x, z.y, '#5b8a3a', 14, 140);
+    burst(z.x, z.y, '#8a1a1a', 8, 100);
+    floats.push({ x: z.x, y: z.y - 10, text: `+${Math.round(g)}💰`, t: 0.8 });
+    updateBtn();
+  }
+
+  // ---------- 그리기 ----------
+  function zColor() {
+    const t = Math.min(1, (stage - 1) / 20);
+    const h = 110 - t * 110; // 초록 → 빨강
+    return `hsla(${h}, 70%, 40%, 0.55)`;
+  }
+
+  function drawUnit(u, x, y, alpha = 1, big = 1) {
+    const s = 1 + u.pop * 1.2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y); ctx.scale(s * big, s * big);
+    const col = UNIT_COLOR[u.lv - 1];
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.roundRect(-29, -29, 58, 58, 11); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.beginPath(); ctx.roundRect(-29, -29, 58, 22, [11, 11, 0, 0]); ctx.fill();
+    if (u.lv >= 6) { ctx.strokeStyle = '#ffe680'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect(-29, -29, 58, 58, 11); ctx.stroke(); }
+    if (u.hit) { ctx.fillStyle = `rgba(255,0,0,${u.hit * 3})`; ctx.beginPath(); ctx.roundRect(-29, -29, 58, 58, 11); ctx.fill(); }
+    ctx.fillStyle = '#fff'; ctx.font = '30px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(UNIT_EMOJI[u.lv - 1], 0, -2 + u.recoil * 2);
+    ctx.font = '15px serif';
+    ctx.fillText('🔫', 16, 10 + u.recoil * 2);
+    // 레벨
+    ctx.fillStyle = 'rgba(0,0,0,.65)';
+    ctx.beginPath(); ctx.roundRect(-29, -29, 28, 15, [11, 0, 8, 0]); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('Lv' + u.lv, -15, -21);
+    // 체력바
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(-25, 22, 50, 5);
+    const r = Math.max(0, u.hp / u.maxHp);
+    ctx.fillStyle = r > .5 ? '#5ee05a' : r > .25 ? '#f2c33d' : '#f2483d';
+    ctx.fillRect(-25, 22, 50 * r, 5);
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+    ctx.drawImage(bg, 0, 0, W, H);
+
+    if (state === 'title') { drawHud(false); return; }
+
+    // 드래그 대상 칸 강조
+    if (drag && drag.moved) {
+      const t = cellAt(drag.x, drag.y);
+      if (t >= 0 && t !== drag.from) {
+        const tu = units[t], fu = units[drag.from];
+        const ok = !tu || (tu.lv === fu.lv && tu.lv < MAX_LV);
+        const merge = tu && tu.lv === fu.lv && tu.lv < MAX_LV;
+        ctx.fillStyle = merge ? 'rgba(120,255,120,.35)' : ok ? 'rgba(255,255,255,.18)' : 'rgba(255,200,80,.2)';
+        const c = cellPos(t);
+        ctx.beginPath(); ctx.roundRect(c.x - CELL / 2 + 2, c.y - CELL / 2 + 2, CELL - 4, CELL - 4, 12); ctx.fill();
+      }
+    }
+
+    // 철조망 (강화 단계만큼 배치)
+    for (let k = 0; k < baseUp.wire; k++) drawWire(415 - k * 55);
+
+    // 유닛
+    units.forEach((u, i) => {
+      if (!u) return;
+      const p = cellPos(i);
+      const dragging = drag && drag.from === i && drag.moved;
+      drawUnit(u, p.x, p.y, dragging ? 0.3 : 1);
+      // 같은 레벨 표시 (드래그 중)
+      if (drag && drag.moved && drag.from !== i && units[drag.from] && units[drag.from].lv === u.lv && u.lv < MAX_LV) {
+        ctx.strokeStyle = 'rgba(140,255,140,.9)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.roundRect(p.x - 31, p.y - 31, 62, 62, 12); ctx.stroke();
+      }
+    });
+
+    // 좀비
+    const zc = zColor();
+    const zs = [...zombies].sort((a, b) => a.y - b.y);
+    for (const z of zs) {
+      const bob = Math.sin(z.bob) * 2;
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.beginPath(); ctx.ellipse(z.x, z.y + 16, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = z.vamp ? 'rgba(140,30,160,.55)' : zc;
+      ctx.beginPath(); ctx.arc(z.x, z.y + bob, z.vamp ? 19 : 16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = (z.vamp ? 34 : 30) + 'px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.save();
+      ctx.translate(z.x, z.y + bob); ctx.rotate(Math.sin(z.bob * .5) * .12);
+      ctx.fillText(z.vamp ? '🧛' : '🧟', 0, 0);
+      ctx.restore();
+      if (z.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${z.flash * 6})`; ctx.beginPath(); ctx.arc(z.x, z.y + bob, 16, 0, Math.PI * 2); ctx.fill(); }
+      if (freezeT > 0) {
+        ctx.fillStyle = 'rgba(140,210,255,.5)'; ctx.strokeStyle = 'rgba(220,245,255,.9)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(z.x - 18, z.y - 18 + bob, 36, 36, 6); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = '14px serif'; ctx.fillText('❄️', z.x + 14, z.y - 14);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(z.x - 16, z.y - 26, 32, 4);
+      ctx.fillStyle = '#e03a3a'; ctx.fillRect(z.x - 16, z.y - 26, 32 * Math.max(0, z.hp / z.maxHp), 4);
+    }
+
+    // 총알
+    ctx.lineCap = 'round';
+    for (const b of bullets) {
+      const vx = b.vx || 0, vy = b.vy || -1;
+      ctx.strokeStyle = b.lv >= 6 ? '#7ff0ff' : '#ffe27a';
+      ctx.lineWidth = 2 + Math.min(4, b.lv * 0.4);
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - vx * 12, b.y - vy * 12); ctx.stroke();
+    }
+
+    // 파티클
+    for (const p of parts) {
+      ctx.globalAlpha = Math.max(0, p.t / p.max);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    for (const f of floats) {
+      ctx.globalAlpha = Math.min(1, f.t * 2);
+      ctx.fillStyle = '#ffd34a'; ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // 드래그 중인 유닛
+    if (drag && drag.moved && units[drag.from]) drawUnit(units[drag.from], drag.x, drag.y, 0.95, 1.1);
+
+    drawHud(true);
+
+    if (banner) {
+      const a = Math.min(1, banner.t * 2);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 250, W, 64);
+      ctx.fillStyle = banner.color; ctx.font = '900 32px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(banner.text, W / 2, 283);
+      ctx.globalAlpha = 1;
+    }
+    if (toast) {
+      ctx.globalAlpha = Math.min(1, toast.t * 3);
+      ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(toast.text).width + 30;
+      ctx.fillStyle = 'rgba(0,0,0,.8)';
+      ctx.beginPath(); ctx.roundRect(W / 2 - w / 2, 400, w, 34, 17); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(toast.text, W / 2, 417);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawWire(y) {
+    // 나무 말뚝
+    ctx.fillStyle = '#5a3d22';
+    for (let x = 34; x <= W - 30; x += 68) ctx.fillRect(x - 2, y - 12, 4, 22);
+    // 코일 철조망
+    ctx.strokeStyle = '#a9adb3'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 26; x <= W - 26; x += 2) {
+      const yy = y + Math.sin(x * 0.45) * 6;
+      x === 26 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(26, y); ctx.lineTo(W - 26, y); ctx.stroke();
+    // 가시
+    ctx.strokeStyle = '#d0d4da'; ctx.lineWidth = 1.2;
+    for (let x = 34; x < W - 26; x += 14) {
+      ctx.beginPath(); ctx.moveTo(x - 3, y - 3); ctx.lineTo(x + 3, y + 3); ctx.moveTo(x + 3, y - 3); ctx.lineTo(x - 3, y + 3); ctx.stroke();
+    }
+  }
+
+  function drawHud(show) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, 44);
+    if (!show) return;
+    ctx.textBaseline = 'middle'; ctx.font = 'bold 17px sans-serif';
+    ctx.textAlign = 'left'; ctx.fillStyle = '#f2b33d'; ctx.fillText(`스테이지 ${stage}`, 12, 22);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(`점수 ${score.toLocaleString()}`, W / 2, 22);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd34a'; ctx.fillText(`💰 ${Math.floor(gold)}`, W - 12, 22);
+    const remain = spawnLeft + zombies.length;
+    ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillText(`남은 좀비 🧟 ${remain}`, W / 2, 58);
+    const fx = [];
+    if (freezeT > 0) fx.push(`❄️ 동결 ${freezeT.toFixed(1)}초`);
+    if (doubleT > 0) fx.push(`💰 골드 2배 ${Math.ceil(doubleT)}초`);
+    if (fx.length) {
+      ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#bfe8ff';
+      ctx.fillText(fx.join('   '), W / 2, 78);
+    }
+  }
+
+  // ---------- 입력 ----------
+  function toLocal(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (state !== 'play') return;
+    const p = toLocal(e);
+    const i = cellAt(p.x, p.y);
+    if (i >= 0 && units[i]) {
+      drag = { from: i, x: p.x, y: p.y, sx: p.x, sy: p.y, moved: false, id: e.pointerId };
+      cv.setPointerCapture(e.pointerId);
+    }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const p = toLocal(e);
+    drag.x = p.x; drag.y = p.y;
+    if (Math.hypot(p.x - drag.sx, p.y - drag.sy) > 6) drag.moved = true;
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    if (!d.moved || state !== 'play') return;
+    const from = units[d.from];
+    if (!from) return;
+    const t = cellAt(d.x, d.y);
+    if (t < 0 || t === d.from) return;
+    const to = units[t];
+    const p = cellPos(t);
+    if (!to) { units[t] = from; units[d.from] = null; }
+    else if (to.lv === from.lv && to.lv < MAX_LV) {
+      units[t] = makeUnit(from.lv + 1); maxReached = Math.max(maxReached, from.lv + 1);
+      units[t].pop = 0.45;
+      units[d.from] = null;
+      burst(p.x, p.y, UNIT_COLOR[from.lv], 22, 180);
+      burst(p.x, p.y, '#fff', 10, 120);
+      floats.push({ x: p.x, y: p.y - 30, text: `Lv${from.lv + 1}!`, t: 0.9 });
+    } else if (to.lv === from.lv) {
+      showToast('최고 레벨입니다');
+    } else { units[t] = from; units[d.from] = to; }
+  }
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
+
+  summonBtn.addEventListener('click', () => { summonBtn.blur(); summon(); });
+  upBtn.addEventListener('click', () => { upBtn.blur(); toggleUpgrades(); });
+  document.getElementById('upClose').addEventListener('click', toggleUpgrades);
+  document.querySelectorAll('.tabBtn').forEach(b => b.addEventListener('click', () => { upTab = b.dataset.tab; renderUpgrades(); upList.scrollTop = 0; }));
+  for (const k in skillBtns) skillBtns[k].addEventListener('click', () => { skillBtns[k].blur(); useSkill(k); });
+  upList.addEventListener('click', e => {
+    const b = e.target.closest('.uBtn');
+    if (b) buyUpgrade(+b.dataset.l, b.dataset.k);
+  });
+  document.getElementById('startBtn').addEventListener('click', newGame);
+  document.getElementById('retryBtn').addEventListener('click', newGame);
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (state === 'play') { if (!e.repeat) summon(); }
+      else if (state === 'title' || !overScreen.classList.contains('hidden')) newGame();
+    } else if ((e.code === 'KeyU' || (e.code === 'Escape' && state === 'upgrade')) && !e.repeat) {
+      toggleUpgrades();
+    } else if (e.code === 'Digit1' && !e.repeat) useSkill('freeze');
+    else if (e.code === 'Digit2' && !e.repeat) useSkill('double');
+  });
+
+  // ---------- 루프 ----------
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
